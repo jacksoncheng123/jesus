@@ -1,3 +1,4 @@
+/* General Reset and Basic Styling */
 * {
     margin: 0;
     padding: 0;
@@ -27,6 +28,7 @@ h1 {
     margin-bottom: 20px;
 }
 
+/* Loader Styling */
 .loader {
     display: inline-block;
     width: 50px;
@@ -43,6 +45,7 @@ h1 {
     100% { transform: rotate(360deg); }
 }
 
+/* Timeline Styling */
 .timeline {
     position: relative;
     margin: 40px 0;
@@ -81,6 +84,7 @@ h1 {
     left: 0;
 }
 
+/* Error Styling */
 .error {
     color: #dc2626;
     text-align: center;
@@ -91,6 +95,7 @@ h1 {
     display: none;
 }
 
+/* Responsive Design */
 @media (max-width: 600px) {
     .container {
         padding: 10px;
@@ -102,5 +107,55 @@ h1 {
     
     .event-date {
         font-size: 1.1rem;
+    }
+}
+
+/* Dark Mode Styles */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #121212;
+        color: #eaeaea;
+    }
+
+    h1 {
+        color: #ffbf00;
+    }
+
+    .event {
+        background-color: #333;
+        color: #fff;
+        border-left: 4px solid #ffbf00;
+    }
+
+    .event-date {
+        color: #ffbf00;
+    }
+
+    .event-activities li::before {
+        color: #ffbf00;
+    }
+
+    .loader {
+        border-top: 3px solid #ffbf00;
+    }
+
+    .error {
+        color: #e11d48;
+        background-color: #f9d8d9;
+    }
+
+    /* Adjust the container for dark mode */
+    .container {
+        background-color: #1e1e1e;
+        color: #eaeaea;
+    }
+
+    /* Dark Mode Link Styles */
+    a {
+        color: #4fa3f7; /* Light blue color for links in dark mode */
+    }
+
+    a:hover {
+        color: #ffbf00; /* Change link color to gold when hovered */
     }
 }
