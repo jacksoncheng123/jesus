@@ -3,61 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>After School Schedule</title>
+    <title>G8 Trip Itinerary</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico">
 </head>
 <body>
-    <h1>Schedule</h1>
-
-    <div class="filter-section">
-        <label for="subject-filter">Filter by Subject:</label>
-        <select id="subject-filter"></select>
+    <div class="container">
+        <header>
+            <h1>G8 Itinerary</h1>
+            <div id="loader" class="loader">Loading...</div>
+        </header>
         
-        <label for="date-filter">Filter by Date:</label>
-        <input type="date" id="date-filter">
+        <main>
+            <div id="timeline" class="timeline">
+                <!-- Events will be inserted here by JavaScript -->
+            </div>
+        </main>
 
-        <button onclick="clearFilters()">Clear Filters</button>
-        <button onclick="togglePastSchedule()">Show Past Schedule</button>
-        <button onclick="showAllRemarks()">Show All Remarks</button>
+        <footer>
+            <p id="error" class="error"></p>
+        </footer>
     </div>
-
-    <div class="upcoming-section">
-        <h2>Upcoming Schedule</h2>
-        <div class="table-responsive">
-            <table id="upcoming-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Remedial Class</th>
-                        <th>Remedial Location</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="schedule-section">
-        <h2>Full Schedule</h2>
-        <div class="table-responsive">
-            <table id="schedule-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Day</th>
-                        <th>Weekday</th>
-                        <th>Remedial Class</th>
-                        <th>Remedial Location</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
+    
     <script src="script.js"></script>
 </body>
 </html>
