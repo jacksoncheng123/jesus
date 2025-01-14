@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Extract flight data (from the first row)
             const flightData = rows[1].split(',');
             if (flightData[columnIndex + 1]?.trim()) {
-                activities.push(`Flight: ${flightData[columnIndex + 1].trim()}`);
+                activities.push(`<strong>Flight:</strong> ${flightData[columnIndex + 1].trim()}`);
             }
 
             // Extract schedule data (from rows starting with "Schedule" until before "Pass")
@@ -39,23 +39,32 @@ document.addEventListener('DOMContentLoaded', () => {
             rows.slice(2, rows.findIndex(row => row.startsWith('Pass'))).forEach(row => {
                 const cells = row.split(',');
                 if (cells[columnIndex + 1]?.trim()) {
-                    scheduleActivities.push(cells[columnIndex + 1].trim());
+                    // Check if it's a URL and make it clickable
+                    let activity = cells[columnIndex + 1].trim();
+                    if (activity.match(/^https?:\/\//)) {
+                        activity = `<a href="${activity}" target="_blank">${activity}</a>`;
+                    }
+                    scheduleActivities.push(activity);
                 }
             });
 
             if (scheduleActivities.length > 0) {
                 // Only add "Schedule" once, then list each activity separately
-                activities.push('Schedule:');
+                activities.push('<strong>Schedule:</strong>');
                 scheduleActivities.forEach(activity => activities.push(`- ${activity}`));
             }
 
-            // Extract hotel data (from the rows starting with "Hotel")
-            const hotelRow = rows.find(row => row.startsWith('Hotel'));
-            if (hotelRow) {
-                const hotels = hotelRow.split(',');
-                if (hotels[columnIndex + 1]?.trim()) {
-                    activities.push(`Hotel: ${hotels[columnIndex + 1].trim()}`);
-                }
+            // Extract hotel data (from rows starting with "Hotel")
+            const hotelRows = rows.filter(row => row.startsWith('Hotel'));
+            const hotelsForThisDay = hotelRows.map(row => {
+                const hotels = row.split(',');
+                return hotels[columnIndex + 1]?.trim();
+            }).filter(Boolean);
+
+            // Add multiple hotels for the same day
+            if (hotelsForThisDay.length > 0) {
+                activities.push('<strong>Hotel:</strong>');
+                hotelsForThisDay.forEach(hotel => activities.push(`- ${hotel}`));
             }
 
             // Extract pass data (from the rows starting with "Pass")
@@ -63,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (passRow) {
                 const passes = passRow.split(',');
                 if (passes[columnIndex + 1]?.trim()) {
-                    activities.push(`Pass: ${passes[columnIndex + 1].trim()}`);
+                    activities.push(`<strong>Pass:</strong> ${passes[columnIndex + 1].trim()}`);
                 }
             }
 
@@ -106,7 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         event.activities.forEach(activity => {
             const li = document.createElement('li');
-            li.textContent = activity;
+            // Handle clickable link (if HTML is present in activity)
+            li.innerHTML = activity;
             activitiesList.appendChild(li);
         });
 
