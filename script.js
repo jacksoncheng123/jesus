@@ -1,88 +1,146 @@
-// Load SheetJS for Excel parsing
-let scheduleData = [];
+document.addEventListener('DOMContentLoaded', () => {
+    const timelineContainer = document.getElementById('timeline');
+    const loader = document.getElementById('loader');
+    const errorElement = document.getElementById('error');
 
-// Function to fetch and parse Excel file
-document.getElementById('upload-excel').addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-
-            // Parse the relevant sheet (e.g., "Go where")
-            const sheetName = 'Go where';
-            const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-            scheduleData = parseExcelData(jsonData);
-            renderSchedule();
-        };
-
-        reader.readAsArrayBuffer(file);
-    }
-});
-
-// Parse Excel data into structured format
-function parseExcelData(data) {
-    const result = [];
-    const headers = data[0]; // First row as headers
-
-    for (let i = 1; i < data.length; i++) {
-        const row = data[i];
-        if (row.length > 0) {
-            result.push({
-                date: headers[i],
-                activity: row[4] || '', // Assuming activities are in the 5th column
-                accommodation: row[0] || '', // Assuming accommodations are in the 1st column
-            });
+    async function fetchData() {
+        try {
+            const response = await fetch('G8.csv');
+            if (!response.ok) {
+                throw new Error('Failed to fetch data');
+            }
+            const csvText = await response.text();
+            return parseCSV(csvText);
+        } catch (error) {
+            throw new Error('Failed to load itinerary data');
         }
     }
 
-    return result;
-}
+    function parseCSV(csvText) {
+        const rows = csvText.split('\n');
+        const headers = rows[0].split(','); // First row is headers (dates)
+        const events = [];
 
-// Render schedule dynamically
-function renderSchedule() {
-    const scheduleSection = document.getElementById('schedule-section');
-    scheduleSection.innerHTML = '';
+        // Loop through each date (starting from index 1 as index 0 is for flight)
+        headers.slice(1).forEach((date, columnIndex) => {
+            const trimmedDate = date.trim();
+            if (!trimmedDate) return;
 
-    scheduleData.forEach((entry) => {
-        const scheduleItem = document.createElement('div');
-        scheduleItem.classList.add('schedule-item');
+            const activities = [];
 
-        scheduleItem.innerHTML = `
-            <div class="schedule-date">${entry.date}</div>
-            <div class="schedule-activity">${entry.activity}</div>
-            <div class="schedule-accommodation">${entry.accommodation}</div>
-        `;
+            // Extract flight data (from the first row)
+            const flightData = rows[1].split(',');
+            if (flightData[columnIndex + 1]?.trim()) {
+                activities.push(`Flight: ${flightData[columnIndex + 1].trim()}`);
+            }
 
-        scheduleSection.appendChild(scheduleItem);
-    });
-}
+            // Extract schedule data (from rows starting with "Schedule" until before "Pass")
+            const scheduleActivities = [];
+            rows.slice(2, rows.findIndex(row => row.startsWith('Pass'))).forEach(row => {
+                const cells = row.split(',');
+                if (cells[columnIndex + 1]?.trim()) {
+                    scheduleActivities.push(cells[columnIndex + 1].trim());
+                }
+            });
 
-// Example filter initialization
-function initializeFilters() {
-    const filterInput = document.getElementById('filter-date');
-    filterInput.addEventListener('input', (event) => {
-        const filterValue = event.target.value;
-        const filteredData = scheduleData.filter(entry => entry.date.includes(filterValue));
+            if (scheduleActivities.length > 0) {
+                // Only add "Schedule" once, then list each activity separately
+                activities.push('Schedule:');
+                scheduleActivities.forEach(activity => activities.push(`- ${activity}`));
+            }
 
-        const scheduleSection = document.getElementById('schedule-section');
-        scheduleSection.innerHTML = '';
+            // Extract hotel data (from the rows starting with "Hotel")
+            const hotelRow = rows.find(row => row.startsWith('Hotel'));
+            if (hotelRow) {
+                const hotels = hotelRow.split(',');
+                if (hotels[columnIndex + 1]?.trim()) {
+                    activities.push(`Hotel: ${hotels[columnIndex + 1].trim()}`);
+                }
+            }
 
-        filteredData.forEach((entry) => {
-            const scheduleItem = document.createElement('div');
-            scheduleItem.classList.add('schedule-item');
+            // Extract pass data (from the rows starting with "Pass")
+            const passRow = rows.find(row => row.startsWith('Pass'));
+            if (passRow) {
+                const passes = passRow.split(',');
+                if (passes[columnIndex + 1]?.trim()) {
+                    activities.push(`Pass: ${passes[columnIndex + 1].trim()}`);
+                }
+            }
 
-            scheduleItem.innerHTML = `
-                <div class="schedule-date">${entry.date}</div>
-                <div class="schedule-activity">${entry.activity}</div>
-                <div class="schedule-accommodation">${entry.accommodation}</div>
-            `;
+            if (activities.length > 0) {
+                // Format the date to yyyy-mm-dd format (dd/mm/yyyy -> yyyy-mm-dd)
+                const [day, month, year] = trimmedDate.split('/');
+                const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
-            scheduleSection.appendChild(scheduleItem);
+                events.push({
+                    date: formattedDate,
+                    activities: activities
+                });
+            }
         });
-    });
-}
+
+        return events.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-GB', { // 'en-GB' for dd/mm/yyyy
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+    function createEventElement(event) {
+        const eventDiv = document.createElement('div');
+        eventDiv.className = 'event';
+
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'event-date';
+        dateDiv.textContent = formatDate(event.date);
+        eventDiv.appendChild(dateDiv);
+
+        const activitiesList = document.createElement('ul');
+        activitiesList.className = 'event-activities';
+
+        event.activities.forEach(activity => {
+            const li = document.createElement('li');
+            li.textContent = activity;
+            activitiesList.appendChild(li);
+        });
+
+        eventDiv.appendChild(activitiesList);
+        return eventDiv;
+    }
+
+    function renderEvents(events) {
+        timelineContainer.innerHTML = '';
+        events.forEach(event => {
+            const eventElement = createEventElement(event);
+            timelineContainer.appendChild(eventElement);
+        });
+    }
+
+    async function initialize() {
+        try {
+            loader.style.display = 'block';
+            errorElement.style.display = 'none';
+
+            const events = await fetchData();
+
+            if (events.length === 0) {
+                throw new Error('No events found in the schedule');
+            }
+
+            renderEvents(events);
+        } catch (error) {
+            errorElement.textContent = error.message;
+            errorElement.style.display = 'block';
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+
+    initialize();
+});
