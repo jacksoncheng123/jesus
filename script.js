@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Fetch the itinerary data
     async function fetchData() {
         try {
             const response = await fetch('G8.csv');
@@ -59,49 +58,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Parse CSV to extract event data
     function parseCSV(csvText) {
         const rows = csvText.split('\n');
-        const headers = rows[0].split(',');
-        const dateIndexes = headers.slice(1).map((_, index) => index + 1); // Skip the first column
+        const headers = rows[0].split(','); // First row is headers (dates)
         const events = [];
 
-        dateIndexes.forEach((columnIndex) => {
-            const date = headers[columnIndex]?.trim();
-            if (!date) return;
+        // Loop through each date (starting from index 1 as index 0 is for flight)
+        headers.slice(1).forEach((date, columnIndex) => {
+            const trimmedDate = date.trim();
+            if (!trimmedDate) return;
 
             const activities = [];
 
-            // Parse schedules from rows
-            const scheduleRow = rows.find(row => row.startsWith('Schedule'));
-            if (scheduleRow) {
-                const scheduleCells = scheduleRow.split(',');
-                if (scheduleCells[columnIndex]?.trim()) {
-                    activities.push(scheduleCells[columnIndex].trim());
-                }
+            // Extract flight data (from the first row)
+            const flightData = rows[1].split(',');
+            if (flightData[columnIndex + 1]?.trim()) {
+                activities.push(`<strong>Flight:</strong> ${flightData[columnIndex + 1].trim()}`);
             }
 
-            // Parse hotel information
-            const hotelRow = rows.find(row => row.startsWith('Hotel'));
-            if (hotelRow) {
-                const hotels = hotelRow.split(',');
-                if (hotels[columnIndex]?.trim()) {
-                    activities.push(`Hotel: ${hotels[columnIndex].trim()}`);
+            // Extract schedule data (from rows starting with "Schedule" until before "Pass")
+            const scheduleActivities = [];
+            rows.slice(2, rows.findIndex(row => row.startsWith('Pass'))).forEach(row => {
+                const cells = row.split(',');
+                if (cells[columnIndex + 1]?.trim()) {
+                    // Check if it's a URL and make it clickable
+                    let activity = cells[columnIndex + 1].trim();
+                    if (activity.match(/^https?:\/\//)) {
+                        activity = `<a href="${activity}" target="_blank">${activity}</a>`;
+                    }
+                    scheduleActivities.push(activity);
                 }
+            });
+
+            if (scheduleActivities.length > 0) {
+                // Only add "Schedule" once, then list each activity separately
+                activities.push('<strong>Schedule:</strong>');
+                scheduleActivities.forEach(activity => activities.push(`- ${activity}`));
             }
 
-            // Parse pass information
+            // Extract hotel data (from rows starting with "Hotel")
+            const hotelRows = rows.filter(row => row.startsWith('Hotel'));
+            const hotelsForThisDay = hotelRows.map(row => {
+                const hotels = row.split(',');
+                return hotels[columnIndex + 1]?.trim();
+            }).filter(Boolean);
+
+            // Add multiple hotels for the same day
+            if (hotelsForThisDay.length > 0) {
+                activities.push('<strong>Hotel:</strong>');
+                hotelsForThisDay.forEach(hotel => activities.push(`- ${hotel}`));
+            }
+
+            // Extract pass data (from the rows starting with "Pass")
             const passRow = rows.find(row => row.startsWith('Pass'));
             if (passRow) {
                 const passes = passRow.split(',');
-                if (passes[columnIndex]?.trim()) {
-                    activities.push(`Pass: ${passes[columnIndex].trim()}`);
+                if (passes[columnIndex + 1]?.trim()) {
+                    activities.push(`<strong>Pass:</strong> ${passes[columnIndex + 1].trim()}`);
                 }
             }
 
             if (activities.length > 0) {
-                // Format date as yyyy-mm-dd
-                const [day, month, year] = date.split('/');
+                // Format the date to yyyy-mm-dd format (dd/mm/yyyy -> yyyy-mm-dd)
+                const [day, month, year] = trimmedDate.split('/');
                 const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
                 events.push({
@@ -114,18 +133,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return events.sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 
-    // Format date to human-readable format
     function formatDate(dateStr) {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-GB', { // 'en-GB' for dd/mm/yyyy
-            weekday: 'long',
+            weekday: 'short',
             year: 'numeric',
-            month: 'long',
+            month: 'short',
             day: 'numeric'
         });
     }
 
-    // Create an event element
     function createEventElement(event) {
         const eventDiv = document.createElement('div');
         eventDiv.className = 'event';
@@ -140,16 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         event.activities.forEach(activity => {
             const li = document.createElement('li');
-            if (activity.includes("http")) {
-                // Make the activity clickable if it's a link
-                const link = document.createElement('a');
-                link.href = activity;
-                link.target = '_blank';
-                link.textContent = activity;
-                li.appendChild(link);
-            } else {
-                li.textContent = activity;
-            }
+            // Handle clickable link (if HTML is present in activity)
+            li.innerHTML = activity;
             activitiesList.appendChild(li);
         });
 
@@ -157,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return eventDiv;
     }
 
-    // Render events into the timeline
     function renderEvents(events) {
         timelineContainer.innerHTML = '';
         events.forEach(event => {
@@ -166,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initialize the web app and load data
     async function initialize() {
         try {
             loader.style.display = 'block';
@@ -179,15 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             renderEvents(events);
-
-            // Scroll to the current date
-            const currentDate = new Date().toISOString().split('T')[0]; // Get today's date in yyyy-mm-dd format
-            const currentEvent = Array.from(timelineContainer.children).find(event => event.querySelector('.event-date').textContent.includes(currentDate));
-
-            if (currentEvent) {
-                currentEvent.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-
         } catch (error) {
             errorElement.textContent = error.message;
             errorElement.style.display = 'block';
@@ -196,6 +194,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Call initialize to load data and render events
     initialize();
 });
