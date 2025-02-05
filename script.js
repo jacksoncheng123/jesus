@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchData() {
         try {
-            const response = await fetch('G8.csv');
+            const response = await fetch('jesus.csv');
             if (!response.ok) {
                 throw new Error('Failed to fetch data');
             }
