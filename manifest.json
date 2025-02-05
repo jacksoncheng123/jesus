@@ -1,7 +1,7 @@
 {
-    "name": "G8 Itinerary",
-    "short_name": "G8 App",
-    "description": "A web app for our g8 Japan trip.",
+    "name": "Grad Trip行程",
+    "short_name": "Grad Trip",
+    "description": "A web app for our Japan Grad trip.",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#ffffff",
