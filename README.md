@@ -1,2 +1,2 @@
-# G8_JP
-g8 japan trip
+# Grad Trip
+japan grad trip
